@@ -15,41 +15,46 @@ MENU_FILE = os.path.join(BASE_DIR, "menu.json")
 ORDERS_FILE = os.path.join(BASE_DIR, "orders.json")
 
 # -------------------------------
-# Function to find free port
+# Find free port
 # -------------------------------
 def get_free_port(default_port=5000):
+    """Return a free port (useful for local dev)."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("", 0))
     free_port = sock.getsockname()[1]
     sock.close()
     return free_port or default_port
 
+# Use Railway port if provided, otherwise free local port
+PORT = int(os.environ.get("PORT", get_free_port()))
+HOST = "0.0.0.0"
+
 # -------------------------------
-# Data Initialization
+# Load menu
 # -------------------------------
 with open(MENU_FILE) as f:
     MENU = json.load(f)
 
+# -------------------------------
+# Data structures
+# -------------------------------
 user_sessions = {}
 orders_lock = Lock()
 
-# Ensure orders.json exists
 if not os.path.exists(ORDERS_FILE):
     with open(ORDERS_FILE, "w") as f:
         json.dump([], f)
 
 # -------------------------------
-# Helper Functions
+# Helper functions
 # -------------------------------
 def save_order(order_data):
     with orders_lock:
-        orders = []
         if os.path.exists(ORDERS_FILE):
             with open(ORDERS_FILE, "r") as f:
-                try:
-                    orders = json.load(f)
-                except:
-                    orders = []
+                orders = json.load(f)
+        else:
+            orders = []
         orders.append(order_data)
         with open(ORDERS_FILE, "w") as f:
             json.dump(orders, f, indent=2)
@@ -73,14 +78,13 @@ def process_order_items(user_id, items_list):
             added_items.append(flat_menu[key])
         else:
             invalid_items.append(item.strip())
-
     if user_id not in user_sessions:
         user_sessions[user_id] = {"items": [], "step": "name"}
     user_sessions[user_id]["items"].extend(added_items)
     return added_items, invalid_items
 
 # -------------------------------
-# Flask Routes
+# Flask routes
 # -------------------------------
 @app.route("/", methods=["GET"])
 def home():
@@ -91,7 +95,6 @@ def webhook():
     data = request.json
     user_id = data.get("user_id")
     message = data.get("message", "").strip()
-
     if not user_id or not message:
         return jsonify({"error": "Missing user_id or message"}), 400
 
@@ -110,9 +113,9 @@ def webhook():
         session["step"] = "name"
         resp = ""
         if added:
-            resp += "✅ Items added to your order:\n" + "\n".join(f"• {i}" for i in added) + "\n"
+            resp += "✅ Items added:\n" + "\n".join(f"• {i}" for i in added) + "\n"
         if invalid:
-            resp += "⚠️ These items were not found:\n" + "\n".join(f"• {i}" for i in invalid) + "\n"
+            resp += "⚠️ Not found:\n" + "\n".join(f"• {i}" for i in invalid) + "\n"
         resp += "\nPlease provide your full name:"
         return jsonify({"response": resp})
 
@@ -148,7 +151,7 @@ def webhook():
         save_order(order_data)
         user_sessions.pop(user_id)
 
-        resp = f"🎉 Your order is confirmed!\n\n"
+        resp = f"🎉 Order confirmed!\n\n"
         resp += f"👤 Name: {order_data['name']}\n"
         resp += f"📞 Contact: {order_data['contact']}\n"
         resp += f"📍 Location: {order_data['location']}\n"
@@ -158,3 +161,10 @@ def webhook():
         return jsonify({"response": resp})
 
     return jsonify({"response": "⚠️ Invalid input or step. Type 'menu' to start again."})
+
+# -------------------------------
+# Run App
+# -------------------------------
+if __name__ == "__main__":
+    print(f"🔹 Starting Dark Kitchen Bot on {HOST}:{PORT}")
+    app.run(host=HOST, port=PORT, debug=False)
