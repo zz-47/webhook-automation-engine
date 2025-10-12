@@ -12,9 +12,12 @@ app = Flask(__name__)
 MENU_FILE = os.path.join(os.path.dirname(__file__), "menu.json")
 ORDERS_FILE = os.path.join(os.path.dirname(__file__), "orders.json")
 
-# Use dynamic port for deployment; default to 5000 for local testing
-PORT = int(os.environ.get("PORT", 5000))
+# Port for Railway deployment
+PORT = int(os.environ.get("PORT", 0))  # Dynamic port from env
 HOST = "0.0.0.0"
+
+if PORT == 0:
+    PORT = 5000  # fallback for local dev
 
 # -------------------------------
 # Load Menu

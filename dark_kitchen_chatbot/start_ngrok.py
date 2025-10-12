@@ -1,12 +1,10 @@
-from pyngrok import ngrok
 import os
-import subprocess
-import sys
+from pyngrok import ngrok
 
 # -------------------------------
-# Flask port
+# Get dynamic Flask port
 # -------------------------------
-PORT = int(os.environ.get("PORT", 5050))
+PORT = int(os.environ.get("PORT", 5000))
 
 # -------------------------------
 # Start ngrok tunnel
@@ -17,7 +15,5 @@ print(f"🚀 Public URL: {public_url} -> http://localhost:{PORT}")
 # -------------------------------
 # Start Flask app
 # -------------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FLASK_APP_PATH = os.path.join(BASE_DIR, "app.py")  # Adjust if app.py is in this folder
-
-subprocess.run([sys.executable, FLASK_APP_PATH, str(PORT)])
+FLASK_APP_PATH = os.path.join(os.path.dirname(__file__), "app.py")
+os.system(f'python "{FLASK_APP_PATH}"')
