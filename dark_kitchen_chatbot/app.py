@@ -15,28 +15,27 @@ MENU_FILE = os.path.join(BASE_DIR, "menu.json")
 ORDERS_FILE = os.path.join(BASE_DIR, "orders.json")
 
 # -------------------------------
-# Find free port
+# Function to find free port (local dev)
 # -------------------------------
 def get_free_port(default_port=5000):
-    """Return a free port (useful for local dev)."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("", 0))
     free_port = sock.getsockname()[1]
     sock.close()
     return free_port or default_port
 
-# Use Railway port if provided, otherwise free local port
+# Dynamic port: Railway sets $PORT, fallback to free port for local
 PORT = int(os.environ.get("PORT", get_free_port()))
 HOST = "0.0.0.0"
 
 # -------------------------------
-# Load menu
+# Load Menu
 # -------------------------------
 with open(MENU_FILE) as f:
     MENU = json.load(f)
 
 # -------------------------------
-# Data structures
+# Data Structures
 # -------------------------------
 user_sessions = {}
 orders_lock = Lock()
@@ -46,7 +45,7 @@ if not os.path.exists(ORDERS_FILE):
         json.dump([], f)
 
 # -------------------------------
-# Helper functions
+# Helper Functions
 # -------------------------------
 def save_order(order_data):
     with orders_lock:
@@ -78,13 +77,14 @@ def process_order_items(user_id, items_list):
             added_items.append(flat_menu[key])
         else:
             invalid_items.append(item.strip())
+
     if user_id not in user_sessions:
         user_sessions[user_id] = {"items": [], "step": "name"}
     user_sessions[user_id]["items"].extend(added_items)
     return added_items, invalid_items
 
 # -------------------------------
-# Flask routes
+# Flask Routes
 # -------------------------------
 @app.route("/", methods=["GET"])
 def home():
@@ -95,6 +95,7 @@ def webhook():
     data = request.json
     user_id = data.get("user_id")
     message = data.get("message", "").strip()
+
     if not user_id or not message:
         return jsonify({"error": "Missing user_id or message"}), 400
 
@@ -163,7 +164,7 @@ def webhook():
     return jsonify({"response": "⚠️ Invalid input or step. Type 'menu' to start again."})
 
 # -------------------------------
-# Run App
+# Run App (local dev only)
 # -------------------------------
 if __name__ == "__main__":
     print(f"🔹 Starting Dark Kitchen Bot on {HOST}:{PORT}")
