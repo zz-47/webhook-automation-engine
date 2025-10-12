@@ -1,7 +1,7 @@
 #!/bin/bash
-# start.sh - starts your Flask bot via start_ngrok.py
+# start.sh - start Flask bot with ngrok
 
-# Install dependencies
+# Upgrade pip and install dependencies
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 
