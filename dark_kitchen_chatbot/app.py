@@ -1,5 +1,6 @@
 import os
 import json
+import socket
 from flask import Flask, request, jsonify
 from datetime import datetime
 from threading import Lock
@@ -13,8 +14,19 @@ BASE_DIR = os.path.dirname(__file__)
 MENU_FILE = os.path.join(BASE_DIR, "menu.json")
 ORDERS_FILE = os.path.join(BASE_DIR, "orders.json")
 
-# Use dynamic port for Railway, fallback 5000 for local
-PORT = int(os.environ.get("PORT", 5000))
+# -------------------------------
+# Function to find free port
+# -------------------------------
+def get_free_port(default_port=5000):
+    """Return a free port, fallback to default."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(("", 0))
+    free_port = sock.getsockname()[1]
+    sock.close()
+    return free_port or default_port
+
+# Dynamic port for Railway or local
+PORT = int(os.environ.get("PORT", get_free_port()))
 HOST = "0.0.0.0"
 
 # -------------------------------
@@ -39,8 +51,11 @@ if not os.path.exists(ORDERS_FILE):
 # -------------------------------
 def save_order(order_data):
     with orders_lock:
-        with open(ORDERS_FILE, "r") as f:
-            orders = json.load(f)
+        if os.path.exists(ORDERS_FILE):
+            with open(ORDERS_FILE, "r") as f:
+                orders = json.load(f)
+        else:
+            orders = []
         orders.append(order_data)
         with open(ORDERS_FILE, "w") as f:
             json.dump(orders, f, indent=2)
@@ -155,4 +170,5 @@ def webhook():
 # Run App
 # -------------------------------
 if __name__ == "__main__":
+    print(f"🔹 Starting Dark Kitchen Bot on {HOST}:{PORT}")
     app.run(host=HOST, port=PORT, debug=False)
