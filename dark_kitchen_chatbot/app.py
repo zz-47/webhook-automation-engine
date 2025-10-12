@@ -9,15 +9,13 @@ app = Flask(__name__)
 # -------------------------------
 # Configuration
 # -------------------------------
-MENU_FILE = os.path.join(os.path.dirname(__file__), "menu.json")
-ORDERS_FILE = os.path.join(os.path.dirname(__file__), "orders.json")
+BASE_DIR = os.path.dirname(__file__)
+MENU_FILE = os.path.join(BASE_DIR, "menu.json")
+ORDERS_FILE = os.path.join(BASE_DIR, "orders.json")
 
-# Port for Railway deployment
-PORT = int(os.environ.get("PORT", 0))  # Dynamic port from env
+# Use dynamic port for Railway, fallback 5000 for local
+PORT = int(os.environ.get("PORT", 5000))
 HOST = "0.0.0.0"
-
-if PORT == 0:
-    PORT = 5000  # fallback for local dev
 
 # -------------------------------
 # Load Menu
@@ -59,7 +57,6 @@ def format_menu():
 def process_order_items(user_id, items_list):
     added_items = []
     invalid_items = []
-
     flat_menu = {name.lower(): name for cat in MENU.values() for name in cat}
     for item in items_list:
         key = item.strip().lower()
@@ -95,12 +92,10 @@ def webhook():
 
     session = user_sessions[user_id]
 
-    # --- Step: Menu ---
     if message.lower() == "menu":
         session["step"] = "order"
         return jsonify({"response": format_menu()})
 
-    # --- Step: Ordering ---
     if session["step"] == "order" and message.lower().startswith("order"):
         items = message[5:].split(",")
         added, invalid = process_order_items(user_id, items)
@@ -113,30 +108,25 @@ def webhook():
         resp += "\nPlease provide your full name:"
         return jsonify({"response": resp})
 
-    # --- Step: Name ---
     if session["step"] == "name":
         session["name"] = message
         session["step"] = "contact"
         return jsonify({"response": f"Thanks {message}! Please provide your contact number:"})
 
-    # --- Step: Contact ---
     if session["step"] == "contact":
         session["contact"] = message
         session["step"] = "location"
         return jsonify({"response": "Great! Now share your delivery address/location:"})
 
-    # --- Step: Location ---
     if session["step"] == "location":
         session["location"] = message
         session["step"] = "payment"
         return jsonify({"response": "Almost done! Please specify payment method (Cash on Delivery / Card):"})
 
-    # --- Step: Payment ---
     if session["step"] == "payment":
         session["payment"] = message
         session["step"] = "completed"
 
-        # Save order
         order_data = {
             "order_number": int(datetime.now().timestamp()),
             "timestamp": datetime.now().isoformat(),
@@ -148,8 +138,6 @@ def webhook():
             "items": session["items"]
         }
         save_order(order_data)
-
-        # Clear session
         user_sessions.pop(user_id)
 
         resp = f"🎉 Your order is confirmed!\n\n"

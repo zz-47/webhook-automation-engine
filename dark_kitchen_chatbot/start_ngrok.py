@@ -1,16 +1,15 @@
 import os
 from pyngrok import ngrok
 
-# -------------------------------
-# Get dynamic Flask port
-# -------------------------------
+# Use dynamic port for both local and production fallback
 PORT = int(os.environ.get("PORT", 5000))
 
 # -------------------------------
-# Start ngrok tunnel
+# Start ngrok tunnel (local only)
 # -------------------------------
-public_url = ngrok.connect(PORT)
-print(f"🚀 Public URL: {public_url} -> http://localhost:{PORT}")
+if os.environ.get("RAILWAY_ENV") != "production":
+    public_url = ngrok.connect(PORT)
+    print(f"🚀 Public URL: {public_url} -> http://localhost:{PORT}")
 
 # -------------------------------
 # Start Flask app
