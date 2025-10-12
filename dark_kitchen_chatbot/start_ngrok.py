@@ -6,7 +6,7 @@ import sys
 # -------------------------------
 # Flask port
 # -------------------------------
-PORT = int(os.environ.get("PORT", 5000))
+PORT = int(os.environ.get("PORT", 5050))
 
 # -------------------------------
 # Start ngrok tunnel
