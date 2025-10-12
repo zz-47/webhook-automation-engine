@@ -1,4 +1,3 @@
-# start_ngrok.py
 import os
 from pyngrok import ngrok
 
@@ -12,7 +11,7 @@ print(f"🚀 Public URL: {public_url} -> http://localhost:5000")
 # Determine Flask app path
 # -------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FLASK_APP_DIR = os.path.join(BASE_DIR, "dark_kitchen_chatbot")
+FLASK_APP_DIR = BASE_DIR  # <-- remove extra dark_kitchen_chatbot
 FLASK_APP_PATH = os.path.join(FLASK_APP_DIR, "app.py")
 
 # -------------------------------
