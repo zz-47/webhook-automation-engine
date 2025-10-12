@@ -13,7 +13,7 @@ MENU_FILE = os.path.join(os.path.dirname(__file__), "menu.json")
 ORDERS_FILE = os.path.join(os.path.dirname(__file__), "orders.json")
 
 # Flask secret key for sessions
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev_secret_key")  # fallback for local dev
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "supersecretkey123")  # fallback for local dev
 
 # Port for Railway deployment
 PORT = int(os.getenv("PORT", 5000))
