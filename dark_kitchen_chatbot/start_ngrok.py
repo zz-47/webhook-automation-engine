@@ -1,16 +1,23 @@
 import os
+import sys
 from pyngrok import ngrok
-from app import app, PORT, HOST  # import directly from your Flask app
+from app import app, get_free_port
 
 # -------------------------------
-# Start ngrok tunnel (local only)
+# Dynamic Port
+# -------------------------------
+PORT = int(os.environ.get("PORT", get_free_port()))
+HOST = "0.0.0.0"
+
+# -------------------------------
+# Start ngrok tunnel (only if not in production)
 # -------------------------------
 if os.environ.get("RAILWAY_ENV") != "production":
     public_url = ngrok.connect(PORT)
-    print(f"🚀 Public URL: {public_url} -> http://localhost:{PORT}")
+    print(f"🚀 Ngrok Tunnel: {public_url} -> http://localhost:{PORT}")
 
 # -------------------------------
-# Start Flask app
+# Run Flask
 # -------------------------------
-print(f"🔹 Starting Flask app on {HOST}:{PORT}")
+print(f"🔹 Starting Dark Kitchen Bot on {HOST}:{PORT}")
 app.run(host=HOST, port=PORT, debug=False)
