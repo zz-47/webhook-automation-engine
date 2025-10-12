@@ -3,6 +3,7 @@ import json
 from flask import Flask, request, jsonify
 from datetime import datetime
 from threading import Lock
+import sys
 
 app = Flask(__name__)
 
@@ -12,11 +13,8 @@ app = Flask(__name__)
 MENU_FILE = os.path.join(os.path.dirname(__file__), "menu.json")
 ORDERS_FILE = os.path.join(os.path.dirname(__file__), "orders.json")
 
-# Flask secret key for sessions
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "supersecretkey123")  # fallback for local dev
-
-# Port for Railway deployment
-PORT = int(os.getenv("PORT", 5000))
+# Port for Flask (can be passed as argument)
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 5000))
 HOST = "0.0.0.0"
 
 # -------------------------------
@@ -167,4 +165,4 @@ def webhook():
 # Run App
 # -------------------------------
 if __name__ == "__main__":
-    app.run(host=HOST, port=PORT)
+    app.run(host=HOST, port=PORT, debug=False)
