@@ -1,5 +1,5 @@
 #!/bin/bash
 # Railway start script for Dark Kitchen
 
-# Start ngrok and Flask
-python start_ngrok.py
+# Use python3 instead of python
+python3 start_ngrok.py
