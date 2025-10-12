@@ -1,0 +1,22 @@
+{
+  "Burgers": {
+    "Cheeseburger": 5.99,
+    "Bacon Burger": 6.99,
+    "Veggie Burger": 5.49
+  },
+  "Pizzas": {
+    "Margherita": 7.99,
+    "Pepperoni": 8.99,
+    "BBQ Chicken": 9.49
+  },
+  "Sides": {
+    "Fries": 2.99,
+    "Onion Rings": 3.49,
+    "Salad": 3.99
+  },
+  "Drinks": {
+    "Coke": 1.99,
+    "Pepsi": 1.99,
+    "Water": 0.99
+  }
+}
