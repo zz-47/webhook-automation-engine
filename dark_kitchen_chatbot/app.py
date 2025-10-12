@@ -4,11 +4,7 @@ from flask import Flask, request, jsonify
 from datetime import datetime
 from threading import Lock
 
-# -------------------------------
-# Flask App Initialization
-# -------------------------------
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "default-secret-key")  # <-- ENV SECRET
 
 # -------------------------------
 # Configuration
@@ -16,8 +12,11 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "default-secret-key")  # <-- ENV 
 MENU_FILE = os.path.join(os.path.dirname(__file__), "menu.json")
 ORDERS_FILE = os.path.join(os.path.dirname(__file__), "orders.json")
 
-# Port for deployment
-PORT = int(os.environ.get("PORT", 5000))
+# Flask secret key for sessions
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev_secret_key")  # fallback for local dev
+
+# Port for Railway deployment
+PORT = int(os.getenv("PORT", 5000))
 HOST = "0.0.0.0"
 
 # -------------------------------
@@ -90,6 +89,7 @@ def webhook():
     if not user_id or not message:
         return jsonify({"error": "Missing user_id or message"}), 400
 
+    # Initialize session
     if user_id not in user_sessions:
         user_sessions[user_id] = {"items": [], "step": "menu"}
 
@@ -136,6 +136,7 @@ def webhook():
         session["payment"] = message
         session["step"] = "completed"
 
+        # Save order
         order_data = {
             "order_number": int(datetime.now().timestamp()),
             "timestamp": datetime.now().isoformat(),
@@ -147,6 +148,8 @@ def webhook():
             "items": session["items"]
         }
         save_order(order_data)
+
+        # Clear session
         user_sessions.pop(user_id)
 
         resp = f"🎉 Your order is confirmed!\n\n"
@@ -164,4 +167,4 @@ def webhook():
 # Run App
 # -------------------------------
 if __name__ == "__main__":
-    app.run(host=HOST, port=PORT, debug=False)
+    app.run(host=HOST, port=PORT)
