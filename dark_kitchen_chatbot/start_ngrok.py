@@ -18,6 +18,6 @@ print(f"🚀 Public URL: {public_url} -> http://localhost:{PORT}")
 # Start Flask app
 # -------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FLASK_APP_PATH = os.path.join(BASE_DIR, "dark_kitchen_chatbot/app.py")  # Adjust if app.py is in this folder
+FLASK_APP_PATH = os.path.join(BASE_DIR, "app.py")  # Adjust if app.py is in this folder
 
 subprocess.run([sys.executable, FLASK_APP_PATH, str(PORT)])
