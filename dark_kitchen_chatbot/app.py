@@ -1,189 +1,167 @@
-# dark_kitchen_chatbot/app.py
-import json
 import os
-import threading
-from datetime import datetime
+import json
 from flask import Flask, request, jsonify
+from datetime import datetime
+from threading import Lock
 
 app = Flask(__name__)
 
 # -------------------------------
-# File paths
+# Configuration
 # -------------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MENU_FILE = os.path.join(BASE_DIR, "menu.json")
-ORDER_LOG_FILE = os.path.join(BASE_DIR, "orders_log.json")
+MENU_FILE = os.path.join(os.path.dirname(__file__), "menu.json")
+ORDERS_FILE = os.path.join(os.path.dirname(__file__), "orders.json")
+
+# Port for Railway deployment
+PORT = int(os.environ.get("PORT", 5000))
+HOST = "0.0.0.0"
 
 # -------------------------------
-# Global state
+# Load Menu
 # -------------------------------
 with open(MENU_FILE) as f:
     MENU = json.load(f)
 
-# Sessions per user_id
-sessions = {}
-ORDER_LOCK = threading.Lock()
-GLOBAL_ORDER_NUMBER = 0
+# -------------------------------
+# Data Structures
+# -------------------------------
+user_sessions = {}  # store ongoing sessions per user_id
+orders_lock = Lock()  # for thread-safe writing
 
-# Load previous orders if exists
-if os.path.exists(ORDER_LOG_FILE):
-    with open(ORDER_LOG_FILE) as f:
-        ORDERS_LOG = json.load(f)
-else:
-    ORDERS_LOG = []
+# Ensure orders.json exists
+if not os.path.exists(ORDERS_FILE):
+    with open(ORDERS_FILE, "w") as f:
+        json.dump([], f)
 
 # -------------------------------
-# Helper functions
+# Helper Functions
 # -------------------------------
+def save_order(order_data):
+    with orders_lock:
+        with open(ORDERS_FILE, "r") as f:
+            orders = json.load(f)
+        orders.append(order_data)
+        with open(ORDERS_FILE, "w") as f:
+            json.dump(orders, f, indent=2)
+
 def format_menu():
-    text = "🍽 **Welcome to Dark Kitchen!**\nHere's our menu:\n\n"
+    msg = "🍽 **Welcome to Dark Kitchen!**\nHere's our menu:\n"
     for category, items in MENU.items():
-        text += f"📌 *{category}*\n"
-        for item, price in items.items():
-            text += f"• {item}: ${price:.2f}\n"
-        text += "\n"
-    text += "To order, type: `order item1, item2`"
-    return text
+        msg += f"\n📌 *{category}*\n"
+        for name, price in items.items():
+            msg += f"• {name}: ${price}\n"
+    msg += "\nTo order, type: `order item1, item2`"
+    return msg
 
-def format_order(order):
-    text = "🛒 Items in your order:\n"
-    for item in order:
-        text += f"• {item}\n"
-    return text
+def process_order_items(user_id, items_list):
+    added_items = []
+    invalid_items = []
 
-def log_order(order_data):
-    ORDERS_LOG.append(order_data)
-    with open(ORDER_LOG_FILE, "w") as f:
-        json.dump(ORDERS_LOG, f, indent=2)
+    flat_menu = {name.lower(): name for cat in MENU.values() for name in cat}
+    for item in items_list:
+        key = item.strip().lower()
+        if key in flat_menu:
+            added_items.append(flat_menu[key])
+        else:
+            invalid_items.append(item.strip())
+
+    if user_id not in user_sessions:
+        user_sessions[user_id] = {"items": [], "step": "name"}
+    user_sessions[user_id]["items"].extend(added_items)
+    return added_items, invalid_items
 
 # -------------------------------
-# Main chat endpoint
+# Flask Routes
 # -------------------------------
-@app.route("/chat", methods=["POST"])
-def chat():
-    global GLOBAL_ORDER_NUMBER
+@app.route("/", methods=["GET"])
+def home():
+    return "Dark Kitchen Bot is running!"
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
     data = request.json
     user_id = data.get("user_id")
     message = data.get("message", "").strip()
 
-    # Initialize session if new user
-    if user_id not in sessions or message.lower() == "menu":
-        sessions[user_id] = {
-            "step": "menu",
-            "order": [],
-            "name": "",
-            "contact": "",
-            "location": "",
-            "payment": ""
-        }
+    if not user_id or not message:
+        return jsonify({"error": "Missing user_id or message"}), 400
 
-    session = sessions[user_id]
-    step = session["step"]
-    response = ""
+    # Initialize session
+    if user_id not in user_sessions:
+        user_sessions[user_id] = {"items": [], "step": "menu"}
 
-    # -------------------------------
-    # Step 1: Show menu
-    # -------------------------------
-    if step == "menu":
-        response = format_menu()
-        session["step"] = "ordering"
+    session = user_sessions[user_id]
 
-    # -------------------------------
-    # Step 2: Take order
-    # -------------------------------
-    elif step == "ordering":
-        if message.lower().startswith("order"):
-            items = [i.strip().title() for i in message[5:].split(",")]
-            valid_items = []
-            invalid_items = []
-            for item in items:
-                if any(item in category for category in MENU.values()):
-                    valid_items.append(item)
-                else:
-                    invalid_items.append(item)
-            session["order"].extend(valid_items)
+    # --- Step: Menu ---
+    if message.lower() == "menu":
+        session["step"] = "order"
+        return jsonify({"response": format_menu()})
 
-            response += "✅ Items added to your order:\n"
-            for i in valid_items:
-                response += f"• {i}\n"
+    # --- Step: Ordering ---
+    if session["step"] == "order" and message.lower().startswith("order"):
+        items = message[5:].split(",")
+        added, invalid = process_order_items(user_id, items)
+        session["step"] = "name"
+        resp = ""
+        if added:
+            resp += "✅ Items added to your order:\n" + "\n".join(f"• {i}" for i in added) + "\n"
+        if invalid:
+            resp += "⚠️ These items were not found:\n" + "\n".join(f"• {i}" for i in invalid) + "\n"
+        resp += "\nPlease provide your full name:"
+        return jsonify({"response": resp})
 
-            if invalid_items:
-                response += "\n⚠️ These items were not found:\n"
-                for i in invalid_items:
-                    response += f"• {i}\n"
-            response += "\nPlease provide your full name:"
-            session["step"] = "name"
-        else:
-            response = "Please type your order starting with `order item1, item2`"
-
-    # -------------------------------
-    # Step 3: Collect name
-    # -------------------------------
-    elif step == "name":
+    # --- Step: Name ---
+    if session["step"] == "name":
         session["name"] = message
-        response = f"Thanks {message}! Please provide your contact number:"
         session["step"] = "contact"
+        return jsonify({"response": f"Thanks {message}! Please provide your contact number:"})
 
-    # -------------------------------
-    # Step 4: Collect contact
-    # -------------------------------
-    elif step == "contact":
+    # --- Step: Contact ---
+    if session["step"] == "contact":
         session["contact"] = message
-        response = "Great! Now share your delivery address/location:"
         session["step"] = "location"
+        return jsonify({"response": "Great! Now share your delivery address/location:"})
 
-    # -------------------------------
-    # Step 5: Collect location
-    # -------------------------------
-    elif step == "location":
+    # --- Step: Location ---
+    if session["step"] == "location":
         session["location"] = message
-        response = "Almost done! Please specify payment method (Cash on Delivery / Card):"
         session["step"] = "payment"
+        return jsonify({"response": "Almost done! Please specify payment method (Cash on Delivery / Card):"})
 
-    # -------------------------------
-    # Step 6: Collect payment and confirm
-    # -------------------------------
-    elif step == "payment":
+    # --- Step: Payment ---
+    if session["step"] == "payment":
         session["payment"] = message
-        # Increment global order number safely
-        with ORDER_LOCK:
-            GLOBAL_ORDER_NUMBER += 1
-            order_number = GLOBAL_ORDER_NUMBER
+        session["step"] = "completed"
 
-        # Log order
+        # Save order
         order_data = {
-            "order_number": order_number,
+            "order_number": int(datetime.now().timestamp()),
             "timestamp": datetime.now().isoformat(),
             "user_id": user_id,
             "name": session["name"],
             "contact": session["contact"],
             "location": session["location"],
             "payment": session["payment"],
-            "items": session["order"]
+            "items": session["items"]
         }
-        log_order(order_data)
+        save_order(order_data)
 
-        # Respond to user
-        response = f"🎉 Your order #{order_number} is confirmed!\n\n"
-        response += f"👤 Name: {session['name']}\n"
-        response += f"📞 Contact: {session['contact']}\n"
-        response += f"📍 Location: {session['location']}\n"
-        response += f"💳 Payment: {session['payment']}\n"
-        response += "🛒 Items:\n"
-        for i in session["order"]:
-            response += f"• {i}\n"
-        response += "\nThank you for ordering! 🙌"
+        # Clear session
+        user_sessions.pop(user_id)
 
-        # Reset session for next order
-        sessions[user_id] = {"step": "menu", "order": [], "name": "", "contact": "", "location": "", "payment": ""}
+        resp = f"🎉 Your order is confirmed!\n\n"
+        resp += f"👤 Name: {order_data['name']}\n"
+        resp += f"📞 Contact: {order_data['contact']}\n"
+        resp += f"📍 Location: {order_data['location']}\n"
+        resp += f"💳 Payment: {order_data['payment']}\n"
+        resp += "🛒 Items:\n" + "\n".join(f"• {i}" for i in order_data["items"]) + "\n"
+        resp += "\nThank you for ordering! 🙌"
+        return jsonify({"response": resp})
 
-    else:
-        response = "Sorry, I didn't understand that."
-
-    return jsonify({"response": response})
+    return jsonify({"response": "⚠️ Invalid input or step. Type 'menu' to start again."})
 
 # -------------------------------
-# Run Flask app
+# Run App
 # -------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host=HOST, port=PORT, debug=False)
