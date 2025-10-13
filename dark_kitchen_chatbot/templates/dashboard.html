@@ -1,47 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🍴 Dark Kitchen Dashboard</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <meta charset="UTF-8">
+    <title>🍴 Dark Kitchen Dashboard</title>
+    <link rel="stylesheet" href="/static/dashboard.css">
 </head>
 <body>
-<div class="container">
-    <h1>🍴 Dark Kitchen Dashboard</h1>
-    <p class="total-orders">Total Orders: {{ total_orders }}</p>
-    <table>
-        <thead>
-            <tr>
-                <th>Order #</th>
-                <th>Timestamp</th>
-                <th>Name</th>
-                <th>Contact</th>
-                <th>Location</th>
-                <th>Payment</th>
-                <th>Items</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in orders %}
-            <tr>
-                <td>{{ order["order_number"] }}</td>
-                <td>{{ order["timestamp"] }}</td>
-                <td>{{ order["name"] }}</td>
-                <td>{{ order["contact"] }}</td>
-                <td>{{ order["location"] }}</td>
-                <td>{{ order["payment"] }}</td>
-                <td>
-                    <ul>
+    <div class="container">
+        <h1>🍴 Dark Kitchen Dashboard</h1>
+        <p>Total Orders: {{ total_orders }}</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Timestamp</th>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>Location</th>
+                    <th>Payment</th>
+                    <th>Items</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_number }}</td>
+                    <td>{{ order.timestamp }}</td>
+                    <td>{{ order.name }}</td>
+                    <td>{{ order.contact }}</td>
+                    <td>{{ order.location }}</td>
+                    <td>{{ order.payment }}</td>
+                    <td>
+                        <ul>
                         {% for item in order["items"] %}
-                        <li>{{ item }}</li>
+                            <li>{{ item }}</li>
                         {% endfor %}
-                    </ul>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+                        </ul>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>

@@ -1,5 +1,7 @@
 import os
 import json
+import time
+import requests
 from flask import Flask, request, jsonify, render_template
 from datetime import datetime
 from threading import Lock
@@ -12,6 +14,11 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(__file__)
 MENU_FILE = os.path.join(BASE_DIR, "menu.json")
 ORDERS_FILE = os.path.join(BASE_DIR, "orders.json")
+
+# 🔹 Snap App Config (replace with your real values)
+SNAP_APP_ID = "b56d2d6b-bb46-42b6-b838-9640c4825680"
+SNAP_API_TOKEN = "eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzYwMjc2OTI5LCJzdWIiOiJiNTZkMmQ2Yi1iYjQ2LTQyYjYtYjgzOC05NjQwYzQ4MjU2ODB-UFJPRFVDVElPTn5iODhhNWQ4NC1hMGFjLTQzNTctYTRiZC1kOGNkMzU1ODI4NGQifQ.kw1-YRR5gh9Dbjc1srJ4SH7rMg4enh160--8NcWjKKg"
+SNAP_CONVERSION_URL = "https://tr.snapchat.com/v2/conversion"
 
 # -------------------------------
 # Load Menu
@@ -28,6 +35,29 @@ orders_lock = Lock()
 if not os.path.exists(ORDERS_FILE):
     with open(ORDERS_FILE, "w", encoding="utf-8") as f:
         json.dump([], f, ensure_ascii=False, indent=2)
+
+# -------------------------------
+# Helper: Send Snapchat Event
+# -------------------------------
+def send_snap_event(event_name, user_id=None):
+    """Send event to Snapchat Conversion API."""
+    headers = {
+        "Authorization": f"Bearer {SNAP_API_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "event_type": event_name,
+        "timestamp": int(time.time()),
+        "event_conversion_type": "WEB",
+        "uuid_c1": user_id or "anonymous",
+        "page_url": "https://darkkitchen.example.com",
+        "app_id": SNAP_APP_ID,
+    }
+    try:
+        r = requests.post(SNAP_CONVERSION_URL, headers=headers, data=json.dumps(payload))
+        print(f"[Snap] Sent event '{event_name}' → {r.status_code}: {r.text}")
+    except Exception as e:
+        print(f"[Snap] Failed to send event '{event_name}':", e)
 
 # -------------------------------
 # Helper Functions
@@ -53,7 +83,7 @@ def format_menu():
     for category, items in MENU.items():
         msg += f"\n📌 *{category}*\n"
         for name, price in items.items():
-            msg += f"• {name}: ${price}\n"
+            msg += f"• {name}: €{price}\n"
     msg += "\nTo order, type: order item1, item2"
     return msg
 
@@ -97,6 +127,7 @@ def webhook():
 
     if user_id not in user_sessions:
         user_sessions[user_id] = {"items": [], "step": "menu"}
+        send_snap_event("chat_started", user_id=user_id)  # 🔹 New Chat Started Event
 
     session = user_sessions[user_id]
 
@@ -116,6 +147,7 @@ def webhook():
         if invalid:
             resp += "⚠️ Not found:\n" + "\n".join(f"• {i}" for i in invalid) + "\n"
         resp += "\nPlease provide your full name:"
+        send_snap_event("order_started", user_id=user_id)  # 🔹 Order Started Event
         return json_response(resp)
 
     # Step: Collect Name
@@ -153,6 +185,7 @@ def webhook():
         }
         save_order(order_data)
         user_sessions.pop(user_id)
+        send_snap_event("order_completed", user_id=user_id)  # 🔹 Order Completed Event
 
         resp = f"🎉 Order confirmed!\n\n"
         resp += f"👤 Name: {order_data['name']}\n"
@@ -174,6 +207,8 @@ def dashboard():
     total_orders = len(orders)
     return render_template("dashboard.html", orders=orders, total_orders=total_orders)
 
-
+# -------------------------------
+# Run App
+# -------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
