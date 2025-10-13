@@ -1,6 +1,6 @@
+# app.py
 import os
 import json
-import time
 from flask import Flask, request, jsonify, render_template
 from datetime import datetime
 from threading import Lock
@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import Snapchat integration blueprint
-from snap_integration import snap_bp, send_snap_event
+from snap_integration import snap_bp, send_snap_event  # Ensure snap_integration.py is in the same folder
 
 # -------------------------------
 # Flask App Setup
@@ -44,25 +44,19 @@ with open(MENU_FILE, encoding="utf-8") as f:
 # Helper Functions
 # -------------------------------
 def save_order(order_data):
-    """Thread-safe order saving"""
     with orders_lock:
-        orders = []
-        if os.path.exists(ORDERS_FILE):
-            with open(ORDERS_FILE, "r", encoding="utf-8") as f:
-                orders = json.load(f)
+        orders = load_orders()
         orders.append(order_data)
         with open(ORDERS_FILE, "w", encoding="utf-8") as f:
             json.dump(orders, f, ensure_ascii=False, indent=2)
 
 def load_orders():
-    """Load all orders"""
     if os.path.exists(ORDERS_FILE):
         with open(ORDERS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return []
 
 def format_menu():
-    """Return formatted menu as text"""
     msg = "🍽 **Welcome to Dark Kitchen!**\nHere's our menu:\n"
     for category, items in MENU.items():
         msg += f"\n📌 *{category}*\n"
@@ -72,7 +66,6 @@ def format_menu():
     return msg
 
 def process_order_items(user_id, items_list):
-    """Match ordered items with menu"""
     added_items, invalid_items = [], []
     flat_menu = {name.lower(): name for cat in MENU.values() for name in cat}
     for item in items_list:
@@ -87,12 +80,7 @@ def process_order_items(user_id, items_list):
     return added_items, invalid_items
 
 def json_response(message):
-    """Return JSON-formatted chatbot response"""
-    return app.response_class(
-        response=json.dumps({"response": message}, ensure_ascii=False, indent=2),
-        status=200,
-        mimetype="application/json"
-    )
+    return jsonify({"response": message})
 
 # -------------------------------
 # Flask Routes
@@ -103,7 +91,6 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    """Chatbot message webhook"""
     data = request.json
     user_id = data.get("user_id")
     message = data.get("message", "").strip()
@@ -191,7 +178,6 @@ def webhook():
 # -------------------------------
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
-    """Admin dashboard to view orders"""
     orders = load_orders()
     total_orders = len(orders)
     return render_template("dashboard.html", orders=orders, total_orders=total_orders)
@@ -201,4 +187,5 @@ def dashboard():
 # -------------------------------
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
+    print(f"🚀 Dark Kitchen Bot running on http://0.0.0.0:{port}")
     app.run(host="0.0.0.0", port=port, debug=True)
