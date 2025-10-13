@@ -1,14 +1,35 @@
 import os
+import socket
 from pyngrok import ngrok
-import subprocess
+from waitress import serve
+from app import app
 
-# Get dynamic port same as app.py
-PORT = int(os.environ.get("PORT", 5000))
+# -------------------------------
+# Function to find free port
+# -------------------------------
+def get_free_port(default_port=5000):
+    s = socket.socket()
+    s.bind(('', 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
 
-# Only run ngrok for local development
-if os.environ.get("RAILWAY_ENV") != "production":
+# -------------------------------
+# Configuration
+# -------------------------------
+PORT = int(os.environ.get("PORT", get_free_port()))
+HOST = "0.0.0.0"
+ENV = os.environ.get("ENV", "local")  # 'production' or 'local'
+
+# -------------------------------
+# Ngrok for local testing
+# -------------------------------
+if ENV == "local":
     public_url = ngrok.connect(PORT)
-    print(f"🚀 Ngrok Tunnel: {public_url} -> http://localhost:{PORT}")
+    print(f"🚀 Public URL: {public_url} -> http://localhost:{PORT}")
 
-# Start Flask locally
-subprocess.run(["python", "app.py"])
+# -------------------------------
+# Start Waitress server (Windows-friendly)
+# -------------------------------
+print(f"🔹 Starting Dark Kitchen Bot on {HOST}:{PORT}")
+serve(app, host=HOST, port=PORT)

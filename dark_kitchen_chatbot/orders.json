@@ -1,100 +1,12 @@
 [
   {
-    "user_id": "test_user_1",
-    "items": [
-      "Cheeseburger",
-      "Fries"
-    ]
-  },
-  {
-    "user_id": "test_user_1",
-    "items": [
-      "Salad"
-    ]
-  },
-  {
-    "user_id": "user123",
+    "order_number": 1697112345,
+    "timestamp": "2025-10-12T21:56:24",
+    "user_id": "user1",
     "name": "John Doe",
     "contact": "+1234567890",
     "location": "123 Dark Street, Gotham",
     "payment": "Cash on Delivery",
-    "items": [
-      "Cheeseburger",
-      "Fries"
-    ]
-  },
-  {
-    "user_id": "user123",
-    "name": "John Doe",
-    "contact": "+1234567890",
-    "location": "123 Dark Street, Gotham",
-    "payment": "Cash on Delivery",
-    "items": [
-      "Cheeseburger",
-      "Fries"
-    ]
-  },
-  {
-    "user_id": "user123",
-    "name": "John Doe",
-    "contact": "+1234567890",
-    "location": "123 Dark Street, Gotham",
-    "payment": "Cash on Delivery",
-    "items": [
-      "Cheeseburger",
-      "Fries"
-    ]
-  },
-  {
-    "user_id": "user123",
-    "name": "John Doe",
-    "contact": "+1234567890",
-    "location": "123 Dark Street, Gotham",
-    "payment": "Cash on Delivery",
-    "items": [
-      "Cheeseburger",
-      "Fries"
-    ]
-  },
-  {
-    "stage": "get_payment",
-    "items": [
-      "Cheeseburger",
-      "Fries"
-    ],
-    "name": "Alice Johnson",
-    "contact": "+123456789",
-    "location": "10 Baker Street, Gotham",
-    "payment": "Cash on Delivery",
-    "order_id": 7,
-    "timestamp": "2025-10-12 21:56:24"
-  },
-  {
-    "stage": "get_payment",
-    "items": [
-      "Margherita",
-      "Pepsi",
-      "Onion Rings"
-    ],
-    "name": "Bob Smith",
-    "contact": "+987654321",
-    "location": "42 Wallaby Way, Sydney",
-    "payment": "Card",
-    "order_id": 8,
-    "timestamp": "2025-10-12 21:56:24"
-  },
-  {
-    "stage": "get_payment",
-    "items": [
-      "Veggie Burger",
-      "Water",
-      "Salad"
-    ],
-    "name": "Charlie Brown",
-    "contact": "+192837465",
-    "location": "221B Baker Street, London",
-    "payment": "Cash on Delivery",
-    "order_id": 9,
-    "timestamp": "2025-10-12 21:56:24"
+    "items": ["Cheeseburger", "Fries"]
   }
 ]
