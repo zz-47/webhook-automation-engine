@@ -61,3 +61,4 @@ dark_kitchen_chatbot/
 │       └── validation.py  # Input sanitization and schema checking
 ├── requirements.txt       # Engine software dependencies
 └── README.md              # Architectural documentation
+
